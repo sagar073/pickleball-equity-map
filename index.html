@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Equity Project — Great Seattle Youth</title>
+
+<!-- 
+  ============================================================
+  INSTRUCTIONS FOR SAGAR:
+  
+  1. Open VS Code on your Mac
+  2. Create a folder called "pickleball-equity-map" on your Desktop
+  3. Open that folder in VS Code (File → Open Folder)
+  4. Create a new file called "index.html" (File → New File → Save As)
+  5. Paste ALL of this code into that file
+  6. Replace YOUR_API_KEY_HERE below with your actual Google Maps API key
+  7. Save the file (Cmd + S)
+  8. Double-click the file in Finder to open it in your browser
+  
+  TO UPDATE DATA: Just update your Google Sheet. The dashboard
+  reads live data from the published CSV every time someone opens it.
+  ============================================================
+-->
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+
+<!-- Papa Parse: Reads CSV files -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<!-- Google Maps API — REPLACE YOUR_API_KEY_HERE WITH YOUR ACTUAL KEY -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAYg8qLh9B2SKQz_N29lsOzoHbwVFAHzLg"></script>
+
+<style>
+/* ============================================================
+   COLORS AND VARIABLES
+   ============================================================ */
+:root {
+  --bg: #0c1117;
+  --card: #151c25;
+  --card-border: #1e2a36;
+  --text: #e4e8ed;
+  --text-muted: #8896a6;
+  --accent: #3ecf8e;
+  --accent2: #f0c040;
+  --danger: #ef5350;
+  --warning: #ff9800;
+  --info: #42a5f5;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  padding: 2rem 2.5rem 1.2rem;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.header h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 800;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.header .subtitle {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+}
+.header .org {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ============================================================
+   METRICS ROW — the 5 headline numbers at the top
+   ============================================================ */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 0.85rem;
+  padding: 1.2rem 2.5rem;
+}
+.metric-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 1.1rem 1.3rem;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card .label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+.metric-card .value {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.metric-card .detail {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+.metric-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+}
+.mc-green::after { background: var(--accent); }
+.mc-red::after { background: var(--danger); }
+.mc-yellow::after { background: var(--accent2); }
+.mc-blue::after { background: var(--info); }
+.mc-orange::after { background: var(--warning); }
+
+/* ============================================================
+   MAP SECTION
+   ============================================================ */
+.map-section {
+  padding: 0 2.5rem 1.5rem;
+}
+.map-panel {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.map-panel h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+.map-panel .panel-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+/* View toggle buttons */
+.view-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.view-btn {
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.view-btn.active, .view-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+#map {
+  width: 100%;
+  height: 520px;
+  border-radius: 8px;
+}
+
+/* Legend below the map */
+.legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.legend-swatch {
+  width: 13px; height: 13px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ============================================================
+   INFO PANEL — shows details when you click a zip code on the map
+   ============================================================ */
+.info-panel {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 0 2.5rem 1.5rem;
+  display: none;
+}
+.info-panel.show { display: block; }
+.info-panel h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+.info-item .info-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.info-item .info-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* ============================================================
+   LOADING STATE
+   ============================================================ */
+.loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+.loading .spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--card-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+  padding: 1.5rem 2.5rem;
+  border-top: 1px solid var(--card-border);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .header, .metrics, .map-section, .info-panel { padding-left: 1rem; padding-right: 1rem; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  #map { height: 350px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>Pickleball Equity Project</h1>
+    <div class="subtitle">Great Seattle Youth — Coverage & Access Analysis</div>
+  </div>
+  <div class="org">Pickleball Forward Foundation<br>letsplayseattle.org</div>
+</div>
+
+<!-- METRICS — filled by JavaScript -->
+<div class="metrics" id="metricsRow"></div>
+
+<!-- MAP -->
+<div class="map-section">
+  <div class="map-panel">
+    <h2>Seattle Coverage Map</h2>
+    <div class="panel-sub">Click any zip code circle for detailed information.</div>
+    <div class="view-selector" id="viewSelector">
+      <button class="view-btn active" data-view="coverage">Coverage Score</button>
+      <button class="view-btn" data-view="affordability">Affordability</button>
+      <button class="view-btn" data-view="headroom">Underserved Youth</button>
+    </div>
+    <div id="map">
+      <div class="loading">
+        <div class="spinner"></div>
+        Loading data from Google Sheets...
+      </div>
+    </div>
+    <div class="legend" id="mapLegend"></div>
+  </div>
+</div>
+
+<!-- INFO PANEL — appears when a zip code is clicked -->
+<div class="info-panel" id="infoPanel">
+  <h3 id="infoTitle">Select a zip code</h3>
+  <div class="info-grid" id="infoGrid"></div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Pickleball Equity Project — Pickleball Forward Foundation &copy; 2026 | Data: ACS Census, SPS P223, HUD AMI, Google Maps | Analysis by Sagar Mittal
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURATION — UPDATE THESE VALUES
+   ============================================================ */
+
+// Your Google Sheets published CSV URL for ZipCodeAnalysis tab
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTgCM8mDY8ghcgQ_K31qszl0RdOH6HhOy17T1sPbw2nDdYuSZdvFfCUlVx_WmKiyQ/pub?gid=2005944729&single=true&output=csv';
+
+// Approximate center coordinates for each zip code (for placing markers on the map)
+// These don't change — they're just geographic centers of each zip code area
+const ZIP_CENTERS = {
+  "98001": {lat: 47.3043, lng: -122.2127},
+  "98040": {lat: 47.5707, lng: -122.2290},
+  "98101": {lat: 47.6114, lng: -122.3371},
+  "98102": {lat: 47.6317, lng: -122.3218},
+  "98103": {lat: 47.6712, lng: -122.3435},
+  "98104": {lat: 47.6023, lng: -122.3308},
+  "98105": {lat: 47.6631, lng: -122.2898},
+  "98106": {lat: 47.5398, lng: -122.3575},
+  "98107": {lat: 47.6700, lng: -122.3832},
+  "98108": {lat: 47.5415, lng: -122.3130},
+  "98109": {lat: 47.6389, lng: -122.3498},
+  "98112": {lat: 47.6297, lng: -122.2970},
+  "98115": {lat: 47.6850, lng: -122.2875},
+  "98116": {lat: 47.5722, lng: -122.3897},
+  "98117": {lat: 47.6876, lng: -122.3756},
+  "98118": {lat: 47.5410, lng: -122.2735},
+  "98119": {lat: 47.6490, lng: -122.3700},
+  "98121": {lat: 47.6157, lng: -122.3440},
+  "98122": {lat: 47.6119, lng: -122.3049},
+  "98125": {lat: 47.7131, lng: -122.3100},
+  "98126": {lat: 47.5444, lng: -122.3703},
+  "98133": {lat: 47.7394, lng: -122.3445},
+  "98136": {lat: 47.5360, lng: -122.3920},
+  "98144": {lat: 47.5892, lng: -122.3010},
+  "98146": {lat: 47.4997, lng: -122.3568},
+  "98168": {lat: 47.4780, lng: -122.2970},
+  "98177": {lat: 47.7560, lng: -122.3640},
+  "98178": {lat: 47.4930, lng: -122.2420},
+  "98188": {lat: 47.4460, lng: -122.2730},
+  "98199": {lat: 47.6540, lng: -122.3980},
+  "98516": {lat: 47.0417, lng: -122.7953}
+};
+
+/* ============================================================
+   GLOBAL VARIABLES
+   ============================================================ */
+let map;                  // Google Map object
+let markers = [];         // Array of all markers currently on the map
+let labels = [];          // Array of all label overlays
+let zipData = [];         // Data from the spreadsheet
+let currentView = 'coverage';  // Which view is active
+
+/* ============================================================
+   COLOR FUNCTIONS — determines what color each zip code gets
+   ============================================================ */
+function coverageColor(score) {
+  if (score >= 80) return '#2ecc71';   // Dark green — great coverage
+  if (score >= 60) return '#82e0aa';   // Light green — good
+  if (score >= 40) return '#f9e79f';   // Yellow — moderate
+  if (score >= 20) return '#f5b041';   // Orange — low
+  return '#e74c3c';                     // Red — very low / none
+}
+
+function affordabilityColor(pctLowIncome) {
+  if (pctLowIncome >= 55) return '#e74c3c';   // Red — very high poverty
+  if (pctLowIncome >= 45) return '#f5b041';   // Orange — high
+  if (pctLowIncome >= 35) return '#f9e79f';   // Yellow — moderate
+  return '#2ecc71';                             // Green — lower poverty
+}
+
+function headroomColor(underserved) {
+  if (underserved >= 3000) return '#e74c3c';   // Red — large gap
+  if (underserved >= 2000) return '#f5b041';   // Orange
+  if (underserved >= 1000) return '#f9e79f';   // Yellow
+  return '#82e0aa';                             // Green — small gap
+}
+
+/* ============================================================
+   STEP 1: LOAD DATA FROM GOOGLE SHEETS
+   
+   Papa Parse reads the CSV from your published Google Sheet URL.
+   Each row becomes an object where the keys are your column names.
+   ============================================================ */
+function loadData() {
+  Papa.parse(SHEET_URL, {
+    download: true,      // Fetch the CSV from the URL
+    header: true,         // First row is column headers
+    skipEmptyLines: true, // Ignore blank rows
+    complete: function(results) {
+      // results.data is an array of objects, one per row
+      zipData = results.data.map(row => {
+        return {
+          zip: String(row['Zip_Code'] || '').trim(),
+          name: String(row['Neighbourhood(s)'] || '').trim(),
+          region: String(row['Region'] || '').trim(),
+          youthPop: parseFloat(row['Youth_Pop(5-17)']) || 0,
+          totalPop: parseFloat(row['Total_Pop(0-17)']) || 0,
+          lowIncome: parseFloat(row['%_Low_Income(Below_$100K)']) || 0,
+          medianIncome: parseFloat(row['Median_HH_Income']) || 0,
+          hudCategory: String(row['HUD_Income_Category'] || '').trim(),
+          affordability: String(row['Affordability'] || '').trim(),
+          programs: parseFloat(row['Total_Youth_PB_Programs']) || 0,
+          providers: String(row['Providers'] || '').trim(),
+          anyPB: String(row['Any_Youth_Pickleball?'] || '').trim(),
+          elemEnrollment: parseFloat(row['Total_Elementary_Enrollment(K-5)']) || 0,
+          middleEnrollment: parseFloat(row['Total_Middle_Enrollment(6-8)']) || 0,
+          highEnrollment: parseFloat(row['Total_High_Enrollment(9-12)']) || 0,
+          pbElemEnrollment: parseFloat(row['PB_Elementary_Enrollment']) || 0,
+          elemCoverage: parseFloat(row['Elementary_Coverage%']) || 0,
+          monthsCoverage: parseFloat(row['Months_of_Coverage(Out of 12)']) || 0,
+          driveTime: parseFloat(row['Drive_Time(min)']) || 0,
+          proximityTier: String(row['Proximity_Tier'] || '').trim(),
+          elemCoverageScore: parseFloat(row['Elementary_Coverage_Score']) || 0,
+          summerCampScore: parseFloat(row['Summer_Camp_Coverage_Score']) || 0,
+          leaguePlayScore: parseFloat(row['League_Play_Coverage_Score']) || 0,
+          coverageScore: parseFloat(row['Total_Coverage_Score(AS+SC+LP)']) || 0,
+          headroom: parseFloat(row['Unserved_Youth_Headroom']) || 0,
+          summerCampDrive: parseFloat(row['Nearest_Summer_Camp_Drive_Time(min)']) || 0,
+          nearestSummerCamp: String(row['Nearest_Summer_Camp'] || '').trim(),
+          leaguePlayDrive: parseFloat(row['Nearest_League_Play_Drive_Time(min)']) || 0,
+          summerCampTier: String(row['Summer_Camp_Proximity_Tier'] || '').trim(),
+          leaguePlayTier: String(row['League_Play_Proximity_Tier'] || '').trim(),
+        };
+      }).filter(d => d.zip && d.zip.length === 5);  // Only keep valid zip codes
+
+      console.log('Loaded', zipData.length, 'zip codes from Google Sheets');
+      
+      // Now build everything
+      buildMetrics();
+      initMap();
+      setupViewToggle();
+    },
+    error: function(error) {
+      console.error('Error loading data:', error);
+      document.getElementById('map').innerHTML = '<div class="loading" style="color:#ef5350">Error loading data. Check that the Google Sheet is published and the URL is correct.</div>';
+    }
+  });
+}
+
+/* ============================================================
+   STEP 2: BUILD THE HEADLINE METRICS
+   
+   Calculates key numbers from the data and displays them
+   in the cards at the top of the page.
+   ============================================================ */
+function buildMetrics() {
+  const noAfterSchool = zipData.filter(z => z.elemCoverageScore === 0 && z.elemEnrollment > 0).length;
+  const totalHeadroom = Math.round(zipData.reduce((sum, z) => sum + z.headroom, 0));
+  const fullYear = zipData.filter(z => z.monthsCoverage >= 12).length;
+  const avgScore = (zipData.reduce((sum, z) => sum + z.coverageScore, 0) / zipData.length).toFixed(1);
+  const totalZips = zipData.length;
+
+  const metrics = [
+    { label: "Zip Codes Analyzed", value: totalZips, detail: "Seattle metro area", cls: "mc-blue" },
+    { label: "No After-School PB", value: noAfterSchool, detail: "zip codes without school-based programs", cls: "mc-red" },
+    { label: "Underserved Youth", value: totalHeadroom.toLocaleString(), detail: "ages 5-17 estimated coverage gap", cls: "mc-yellow" },
+    { label: "Year-Round Coverage", value: fullYear, detail: "zip codes with 12-month programs", cls: "mc-green" },
+    { label: "Avg Coverage Score", value: avgScore, detail: "out of 100 across all zip codes", cls: "mc-orange" }
+  ];
+
+  const container = document.getElementById('metricsRow');
+  container.innerHTML = '';
+  metrics.forEach(m => {
+    container.innerHTML += `
+      <div class="metric-card ${m.cls}">
+        <div class="label">${m.label}</div>
+        <div class="value">${m.value}</div>
+        <div class="detail">${m.detail}</div>
+      </div>`;
+  });
+}
+
+/* ============================================================
+   STEP 3: INITIALIZE THE GOOGLE MAP
+   
+   Creates the map centered on Seattle with a dark theme.
+   Then adds colored circle markers for each zip code.
+   ============================================================ */
+function initMap() {
+  // Create the map centered on Seattle
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 47.608, lng: -122.335 },
+    zoom: 11,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
+    styles: [
+      // Dark theme styling for the map
+      { elementType: "geometry", stylers: [{ color: "#1d2c3e" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a2e" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b8" }] },
+      { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#2a3f54" }] },
+      { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] },
+      { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+      { featureType: "poi", stylers: [{ visibility: "off" }] },
+      { featureType: "transit", stylers: [{ visibility: "off" }] }
+    ]
+  });
+
+  // Add markers for the default view
+  updateMarkers('coverage');
+}
+
+/* ============================================================
+   STEP 4: ADD/UPDATE MARKERS ON THE MAP
+   
+   Clears existing markers, then adds new colored circles
+   for each zip code based on the selected view.
+   ============================================================ */
+function updateMarkers(view) {
+  // Remove old markers
+  markers.forEach(m => m.setMap(null));
+  labels.forEach(l => l.setMap(null));
+  markers = [];
+  labels = [];
+
+  // Only show zip codes that have coordinates (skip 98516 Lacey — too far south)
+  const visibleZips = zipData.filter(z => ZIP_CENTERS[z.zip] && z.zip !== '98516');
+
+  visibleZips.forEach(z => {
+    const center = ZIP_CENTERS[z.zip];
+    if (!center) return;
+
+    // Determine color and size based on current view
+    let color, radius;
+    if (view === 'coverage') {
+      color = coverageColor(z.coverageScore);
+      radius = 18;
+    } else if (view === 'affordability') {
+      color = affordabilityColor(z.lowIncome);
+      radius = 18;
+    } else {
+      // Headroom view — circle size represents number of underserved youth
+      color = headroomColor(z.headroom);
+      radius = Math.max(10, Math.min(35, z.headroom / 120));
+    }
+
+    // Create the colored circle marker
+    const marker = new google.maps.Circle({
+      strokeColor: 'rgba(255,255,255,0.3)',
+      strokeWeight: 1,
+      fillColor: color,
+      fillOpacity: 0.75,
+      map: map,
+      center: center,
+      radius: radius * 25,  // Convert to meters for Google Maps
+      zIndex: 10
+    });
+
+    // When user clicks a circle, show details in the info panel below the map
+    google.maps.event.addListener(marker, 'click', function() {
+      showInfoPanel(z);
+    });
+
+    markers.push(marker);
+
+    // Add zip code label on top of the circle
+    const label = new google.maps.Marker({
+      position: center,
+      map: map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,  // Invisible — we just want the label
+      },
+      label: {
+        text: z.zip.slice(-3),  // Show last 3 digits (e.g., "103" for 98103)
+        color: '#ffffff',
+        fontSize: '10px',
+        fontWeight: '700'
+      },
+      zIndex: 20
+    });
+
+    labels.push(label);
+  });
+
+  // Update the legend below the map
+  updateLegend(view);
+}
+
+/* ============================================================
+   STEP 5: UPDATE THE LEGEND
+   ============================================================ */
+function updateLegend(view) {
+  const legend = document.getElementById('mapLegend');
+  if (view === 'coverage') {
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#2ecc71"></div>Score 80+</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#82e0aa"></div>60-80</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f9e79f"></div>40-60</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f5b041"></div>20-40</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>Below 20</div>
+    `;
+  } else if (view === 'affordability') {
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#2ecc71"></div>Below 35% Low Income</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f9e79f"></div>35-45%</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f5b041"></div>45-55%</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>Above 55%</div>
+    `;
+  } else {
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-swatch" style="background:#82e0aa"></div>Under 1,000</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f9e79f"></div>1,000-2,000</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f5b041"></div>2,000-3,000</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>3,000+</div>
+      <div class="legend-item" style="font-style:italic">Circle size = number of underserved youth</div>
+    `;
+  }
+}
+
+/* ============================================================
+   STEP 6: SHOW DETAILED INFO PANEL WHEN A ZIP CODE IS CLICKED
+   ============================================================ */
+function showInfoPanel(z) {
+  const panel = document.getElementById('infoPanel');
+  const title = document.getElementById('infoTitle');
+  const grid = document.getElementById('infoGrid');
+
+  panel.classList.add('show');
+  title.textContent = `${z.zip} — ${z.name}`;
+
+  // Format the coverage score color
+  const scoreColor = z.coverageScore >= 70 ? 'color:var(--accent)' : 'color:var(--danger)';
+
+  grid.innerHTML = `
+    <div class="info-item">
+      <div class="info-label">Total Coverage Score</div>
+      <div class="info-value" style="${scoreColor}">${z.coverageScore.toFixed(1)}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Elementary Coverage</div>
+      <div class="info-value">${z.elemCoverage.toFixed(1)}%</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">% Low Income</div>
+      <div class="info-value">${z.lowIncome.toFixed(1)}%</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Underserved Youth (5-17)</div>
+      <div class="info-value">${Math.round(z.headroom).toLocaleString()}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Youth Population (5-17)</div>
+      <div class="info-value">${Math.round(z.youthPop).toLocaleString()}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Months of Coverage</div>
+      <div class="info-value">${z.monthsCoverage} / 12</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Programs</div>
+      <div class="info-value">${z.programs} ${z.providers ? '(' + z.providers + ')' : ''}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">HUD Income Category</div>
+      <div class="info-value">${z.hudCategory || 'N/A'}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">After-School Score</div>
+      <div class="info-value">${z.elemCoverageScore.toFixed(1)}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Summer Camp Score</div>
+      <div class="info-value">${z.summerCampScore.toFixed(1)}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">League Play Score</div>
+      <div class="info-value">${z.leaguePlayScore.toFixed(1)}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Nearest Summer Camp</div>
+      <div class="info-value">${z.nearestSummerCamp || 'N/A'} (${z.summerCampDrive} min)</div>
+    </div>
+  `;
+
+  // Scroll to the info panel so the user can see it
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ============================================================
+   STEP 7: SETUP VIEW TOGGLE BUTTONS
+   
+   When user clicks "Coverage Score", "Affordability", or 
+   "Underserved Youth", the map markers change color/size.
+   ============================================================ */
+function setupViewToggle() {
+  const buttons = document.querySelectorAll('.view-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Update active button style
+      buttons.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Update map
+      currentView = this.getAttribute('data-view');
+      updateMarkers(currentView);
+    });
+  });
+}
+
+/* ============================================================
+   START EVERYTHING — load data when the page opens
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
