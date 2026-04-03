@@ -14,16 +14,16 @@
 
 <style>
 :root {
-  --bg: #0c1117;
-  --card: #151c25;
-  --card-border: #1e2a36;
-  --text: #e4e8ed;
-  --text-muted: #8896a6;
-  --accent: #3ecf8e;
-  --accent2: #f0c040;
-  --danger: #ef5350;
-  --warning: #ff9800;
-  --info: #42a5f5;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --card-border: #e2e8f0;
+  --text: #2d3748;
+  --text-muted: #718096;
+  --accent: #4ABBE0;
+  --accent2: #2b8bb5;
+  --danger: #e53e3e;
+  --warning: #dd6b20;
+  --info: #4ABBE0;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
@@ -41,12 +41,13 @@ body {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
+  background: #ffffff;
 }
 .header h1 {
   font-family: 'Fraunces', serif;
   font-weight: 800;
   font-size: 1.5rem;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  background: linear-gradient(135deg, #4ABBE0, #2b8bb5);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -66,12 +67,17 @@ body {
   padding: 0.85rem 1rem;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 .metric-card .label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
 .metric-card .value { font-family: 'Fraunces', serif; font-size: 1.7rem; font-weight: 800; line-height: 1.1; }
 .metric-card .detail { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; }
 .metric-card::after { content:''; position:absolute; top:0; left:0; width:100%; height:2.5px; }
-.mc-green::after { background: var(--accent); }
+.mc-green::after { background: #48bb78; }
+.mc-red::after { background: #e53e3e; }
+.mc-yellow::after { background: #ecc94b; }
+.mc-blue::after { background: #4ABBE0; }
+.mc-orange::after { background: #dd6b20; }
 .mc-red::after { background: var(--danger); }
 .mc-yellow::after { background: var(--accent2); }
 .mc-blue::after { background: var(--info); }
@@ -91,6 +97,7 @@ body {
   padding: 1rem;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .info-col {
   background: var(--card);
@@ -100,6 +107,7 @@ body {
   padding: 1rem;
   overflow-y: auto;
   max-height: 750px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .map-col h2 { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 600; }
@@ -117,7 +125,7 @@ body {
   cursor: pointer;
   transition: all 0.2s;
 }
-.view-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.view-btn.active { background: #4ABBE0; color: #ffffff; border-color: #4ABBE0; }
 .view-btn:hover { opacity: 0.85; }
 
 #map { width: 100%; flex: 1; min-height: 580px; border-radius: 6px; }
@@ -161,6 +169,7 @@ body {
   font-size: 0.62rem;
   color: var(--text-muted);
   text-align: center;
+  background: #ffffff;
 }
 
 @media (max-width: 900px) {
@@ -271,11 +280,13 @@ function headroomColor(h) {
   if (h >= 1000) return '#f9e79f';
   return '#82e0aa';
 }
-function providerColor(name) {
+function providerColor(name, type) {
   const n = (name || '').toLowerCase();
+  const t = (type || '').toLowerCase();
   if (n.includes('skyhawk')) return '#ef5350';
   if (n.includes('westside')) return '#f0c040';
   if (n.includes('youth pickleball') || n.includes('ypi')) return '#ff9800';
+  if (t.includes('summer')) return '#42a5f5';
   return '#3ecf8e';
 }
 
@@ -395,16 +406,10 @@ function initMap() {
     fullscreenControl: true,
     gestureHandling: 'greedy',
     styles: [
-      {elementType:"geometry",stylers:[{color:"#1d2c3e"}]},
-      {elementType:"labels.text.stroke",stylers:[{color:"#1a1a2e"}]},
-      {elementType:"labels.text.fill",stylers:[{color:"#8ec3b8"}]},
-      {featureType:"administrative.locality",elementType:"labels.text.fill",stylers:[{color:"#bdbdbd"}]},
-      {featureType:"road",elementType:"geometry",stylers:[{color:"#2a3f54"}]},
-      {featureType:"road",elementType:"labels",stylers:[{visibility:"off"}]},
-      {featureType:"water",elementType:"geometry",stylers:[{color:"#0e1626"}]},
-      {featureType:"poi",stylers:[{visibility:"off"}]},
-      {featureType:"transit",stylers:[{visibility:"off"}]}
-    ]
+  {featureType:"road",elementType:"labels",stylers:[{visibility:"off"}]},
+  {featureType:"poi",stylers:[{visibility:"off"}]},
+  {featureType:"transit",stylers:[{visibility:"off"}]}
+]
   });
   drawZipBoundaries('coverage');
   addProgramMarkers();
@@ -455,7 +460,7 @@ function drawZipBoundaries(view) {
 
       const polygon = new google.maps.Polygon({
         paths: paths,
-        strokeColor: 'rgba(255,255,255,0.4)',
+        strokeColor: 'rgba(0,0,0,0.3)',
         strokeWeight: 1.5,
         fillColor: color,
         fillOpacity: 0.55,
@@ -468,12 +473,12 @@ function drawZipBoundaries(view) {
       google.maps.event.addListener(polygon, 'mouseout', () => { polygon.setOptions({fillOpacity:0.55, strokeWeight:1.5}); });
       zipPolygons.push(polygon);
 
-      const center = ZIP_CENTERS[featureZip];
+      const center = ZIP_CENTERS[zd.zip];
       if (center) {
         const label = new google.maps.Marker({
           position: center, map: map,
           icon: {path: google.maps.SymbolPath.CIRCLE, scale: 0},
-          label: {text: featureZip, color:'#ffffff', fontSize:'10px', fontWeight:'700'},
+          label: {text: zd.zip, color:'#2d3748', fontSize:'10px', fontWeight:'700'},
           zIndex: 5, clickable: false
         });
         zipLabels.push(label);
@@ -500,7 +505,7 @@ function drawZipBoundaries(view) {
     const label = new google.maps.Marker({
       position: ZIP_CENTERS[zd.zip], map: map,
       icon: {path: google.maps.SymbolPath.CIRCLE, scale: 0},
-      label: {text: zd.zip, color:'#fff', fontSize:'9px', fontWeight:'700'},
+      label: {text: zd.zip, color:'#2d3748', fontSize:'10px', fontWeight:'700'},
       zIndex: 5, clickable: false
     });
     zipLabels.push(label);
@@ -519,7 +524,7 @@ function addProgramMarkers() {
     if (!center) return;
     const offset = (Math.random() - 0.5) * 0.008;
     const position = {lat: center.lat + offset, lng: center.lng + offset};
-    const color = providerColor(prog.name);
+    const color = providerColor(prog.name, prog.type);
 
     const marker = new google.maps.Marker({
       position: position, map: map,
