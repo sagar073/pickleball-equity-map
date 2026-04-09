@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Equity Project — Great Seattle Youth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- REPLACE YOUR_API_KEY_HERE -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAYg8qLh9B2SKQz_N29lsOzoHbwVFAHzLg"></script>
+<style>
+:root {
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --card-border: #e2e8f0;
+  --text: #2d3748;
+  --text-muted: #718096;
+  --accent: #4ABBE0;
+  --accent2: #2b8bb5;
+  --danger: #e53e3e;
+  --warning: #dd6b20;
+  --info: #4ABBE0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+
+/* HEADER */
+.header {
+  padding:1.5rem 2rem 1rem;
+  border-bottom:1px solid var(--card-border);
+  display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:.75rem;
+  background:#ffffff;
+}
+.header h1 {
+  font-family:'Fraunces',serif; font-weight:800; font-size:1.5rem;
+  background:linear-gradient(135deg,#4ABBE0,#2b8bb5);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.header .subtitle { color:var(--text-muted); font-size:.78rem; }
+.header .org { font-size:.72rem; color:var(--text-muted); text-align:right; }
+
+/* PROJECT INTRO */
+.project-intro {
+  display:grid; grid-template-columns:1fr 1fr; gap:2rem;
+  padding:1.5rem 2rem; background:#ffffff; border-bottom:1px solid var(--card-border);
+}
+.project-intro .intro-text { font-size:.85rem; color:var(--text); line-height:1.7; }
+.project-intro .intro-text h2 { font-family:'Fraunces',serif; font-size:1.1rem; margin-bottom:.5rem; color:var(--accent2); }
+.project-intro .intro-video { display:flex; align-items:center; justify-content:center; }
+.project-intro .intro-video .video-placeholder {
+  width:100%; max-width:480px; aspect-ratio:16/9; background:#e2e8f0; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:.85rem;
+}
+
+/* METRICS */
+.metrics { display:grid; grid-template-columns:repeat(5,1fr); gap:.7rem; padding:1rem 2rem; }
+.metric-card {
+  background:var(--card); border:1px solid var(--card-border); border-radius:8px;
+  padding:.85rem 1rem; position:relative; overflow:visible;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.metric-card .label { font-size:.62rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+.metric-card .value { font-family:'Fraunces',serif; font-size:1.7rem; font-weight:800; line-height:1.1; }
+.metric-card .detail { font-size:.65rem; color:var(--text-muted); margin-top:.15rem; }
+.metric-card::after { content:''; position:absolute; top:0; left:0; width:100%; height:2.5px; border-radius:8px 8px 0 0; }
+.mc-green::after { background:#48bb78; }
+.mc-red::after { background:#e53e3e; }
+.mc-yellow::after { background:#ecc94b; }
+.mc-blue::after { background:#4ABBE0; }
+.mc-orange::after { background:#dd6b20; }
+
+/* TOOLTIP */
+.tooltip-trigger {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:16px; height:16px; border-radius:50%; background:#e2e8f0;
+  color:var(--text-muted); font-size:.6rem; font-weight:700; cursor:help;
+  margin-left:.4rem; position:relative; vertical-align:middle;
+}
+.tooltip-trigger:hover .tooltip-text { display:block; }
+.tooltip-text {
+  display:none; position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
+  background:#2d3748; color:#fff; font-size:.65rem; font-weight:400; padding:.5rem .7rem;
+  border-radius:6px; width:220px; line-height:1.4; z-index:100; text-transform:none; letter-spacing:0;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.tooltip-text::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:#2d3748;
+}
+
+/* MAIN LAYOUT — info left, map right */
+.main-layout {
+  display:grid; grid-template-columns:380px 1fr; gap:0; padding:0 2rem 1rem; min-height:650px;
+}
+.info-col {
+  background:var(--card); border:1px solid var(--card-border);
+  border-radius:12px 0 0 12px; padding:1rem; overflow-y:auto; max-height:750px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.map-col {
+  background:var(--card); border:1px solid var(--card-border); border-left:none;
+  border-radius:0 12px 12px 0; padding:1rem; display:flex; flex-direction:column;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+
+.map-col h2 { font-family:'Fraunces',serif; font-size:1rem; font-weight:600; }
+.map-col .panel-sub { font-size:.7rem; color:var(--text-muted); margin-bottom:.6rem; }
+
+.view-selector { display:flex; gap:.35rem; margin-bottom:.6rem; flex-wrap:wrap; }
+.view-btn {
+  padding:.25rem .6rem; border-radius:5px; border:1px solid var(--card-border);
+  background:transparent; color:var(--text-muted); font-size:.65rem;
+  font-family:'DM Sans',sans-serif; cursor:pointer; transition:all .2s;
+}
+.view-btn.active { background:#4ABBE0; color:#ffffff; border-color:#4ABBE0; }
+.view-btn:hover { opacity:.85; }
+
+#map { width:100%; flex:1; min-height:580px; border-radius:6px; }
+
+/* LEGEND */
+.legend { display:flex; gap:.6rem; margin-top:.5rem; flex-wrap:wrap; align-items:center; }
+.legend-item { display:flex; align-items:center; gap:.25rem; font-size:.6rem; color:var(--text-muted); }
+.legend-swatch { width:12px; height:12px; border-radius:2px; border:1px solid rgba(0,0,0,.1); }
+.legend-desc { font-size:.6rem; color:var(--text-muted); font-style:italic; margin-left:.5rem; }
+
+.map-footer { display:flex; justify-content:space-between; align-items:center; margin-top:.5rem; }
+.methodology-link { font-size:.65rem; color:var(--accent); text-decoration:none; font-weight:500; }
+.methodology-link:hover { text-decoration:underline; }
+
+/* INFO PANEL */
+.info-col h3 { font-family:'Fraunces',serif; font-size:1.05rem; margin-bottom:.5rem; }
+.info-col .placeholder { color:var(--text-muted); font-size:.78rem; padding:1.5rem 0; text-align:center; }
+
+.info-grid { display:flex; flex-direction:column; gap:0; }
+.info-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.35rem 0; border-bottom:1px solid var(--card-border);
+}
+.info-item .info-label { font-size:.66rem; color:var(--text-muted); }
+.info-item .info-value { font-size:.8rem; font-weight:700; text-align:right; }
+
+.info-section-header {
+  font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--accent); padding:.6rem 0 .25rem;
+}
+
+/* BLURB */
+.zip-blurb {
+  background:#f0f7fb; border-left:3px solid var(--accent); padding:.6rem .8rem;
+  margin:.5rem 0; border-radius:0 6px 6px 0; font-size:.72rem; line-height:1.5;
+  color:var(--text);
+}
+
+.program-legend { margin-top:.75rem; padding-top:.6rem; border-top:1px solid var(--card-border); }
+.program-legend h4 { font-size:.68rem; color:var(--text-muted); margin-bottom:.35rem; text-transform:uppercase; letter-spacing:.05em; }
+.prog-item { display:flex; align-items:center; gap:.35rem; font-size:.66rem; color:var(--text-muted); margin-bottom:.2rem; }
+.prog-dot { width:9px; height:9px; border-radius:50%; border:1.5px solid rgba(0,0,0,.3); }
+
+/* SCATTER PLOT SECTION */
+.scatter-section {
+  padding:0 2rem 1.5rem;
+}
+.scatter-panel {
+  background:var(--card); border:1px solid var(--card-border); border-radius:12px;
+  padding:1.5rem; box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.scatter-panel h2 { font-family:'Fraunces',serif; font-size:1rem; font-weight:600; margin-bottom:.2rem; }
+.scatter-panel .panel-sub { font-size:.7rem; color:var(--text-muted); margin-bottom:1rem; }
+.scatter-container { width:100%; height:420px; position:relative; }
+.scatter-svg { width:100%; height:100%; }
+.scatter-dot { cursor:pointer; transition: r .15s; }
+.scatter-dot:hover { r:7; }
+.scatter-label { font-size:9px; fill:var(--text-muted); pointer-events:none; }
+.threshold-line { stroke:#e53e3e; stroke-width:1.5; stroke-dasharray:6,4; opacity:.7; }
+.axis-label { font-size:10px; fill:var(--text-muted); }
+.scatter-blurb {
+  background:#f0f7fb; border-left:3px solid var(--accent); padding:.6rem .8rem;
+  margin-top:1rem; border-radius:0 6px 6px 0; font-size:.72rem; line-height:1.5; color:var(--text);
+}
+
+/* FOOTER */
+.footer {
+  padding:1rem 2rem; border-top:1px solid var(--card-border);
+  font-size:.62rem; color:var(--text-muted); text-align:center; background:#ffffff;
+}
+
+@media (max-width:900px) {
+  .main-layout { grid-template-columns:1fr; }
+  .info-col { border-radius:12px 12px 0 0; max-height:none; border-bottom:none; }
+  .map-col { border-radius:0 0 12px 12px; border-left:1px solid var(--card-border); }
+  .metrics { grid-template-columns:repeat(2,1fr); }
+  .header,.metrics,.main-layout,.scatter-section { padding-left:.75rem; padding-right:.75rem; }
+  #map { min-height:400px; }
+  .project-intro { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Pickleball Equity Project</h1>
+    <div class="subtitle">Great Seattle Youth — Coverage & Access Analysis</div>
+  </div>
+  <div class="org">Pickleball Forward Foundation<br>letsplayseattle.org</div>
+</div>
+
+<!-- PROJECT INTRO -->
+<div class="project-intro">
+  <div class="intro-text">
+    <h2>About This Project</h2>
+    The Pickleball Forward Foundation's mission is built on two pillars: Accessibility and Quality. This project focuses on proximity — one of three dimensions of accessibility alongside affordability and visibility. Using public data from the US Census, Seattle Public Schools, and HUD income data, we analyze youth pickleball coverage across 31 Seattle-area zip codes to answer four key questions: What is the current state of coverage, and is household income correlated with access? Which zip codes have more or less access to pickleball programs? What is the headroom — how many underserved youth remain in each area? And how does coverage break down by age group across after-school, summer camp, and league play programs?
+  </div>
+  <div class="intro-video">
+    <!-- REPLACE THIS with your actual video embed code -->
+    <div class="video-placeholder">Video coming soon — record a short explainer video and embed it here</div>
+  </div>
+</div>
+
+<div class="metrics" id="metricsRow"></div>
+
+<div class="main-layout">
+  <!-- LEFT: INFO PANEL -->
+  <div class="info-col" id="infoCol">
+    <h3 id="infoTitle">Select a Zip Code</h3>
+    <div class="placeholder" id="infoPlaceholder">Click any colored area on the map to see detailed coverage information for that zip code.</div>
+    <div id="zipBlurb" style="display:none"></div>
+    <div class="info-grid" id="infoGrid" style="display:none"></div>
+    <div class="program-legend">
+      <h4>Program Locations</h4>
+      <div class="prog-item"><div class="prog-dot" style="background:#3ecf8e"></div> PFF After-School</div>
+      <div class="prog-item"><div class="prog-dot" style="background:#42a5f5"></div> PFF Summer Camp</div>
+      <div class="prog-item"><div class="prog-dot" style="background:#f0c040"></div> Westside Pickleball</div>
+      <div class="prog-item"><div class="prog-dot" style="background:#ff9800"></div> Youth Pickleball Initiative</div>
+      <div class="prog-item"><div class="prog-dot" style="background:#ef5350"></div> Skyhawks Pickleball</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: MAP -->
+  <div class="map-col">
+    <h2>Seattle Coverage Map</h2>
+    <div class="panel-sub">Click any zip code for details. Colored pins show program locations.</div>
+    <div class="view-selector" id="viewSelector">
+      <button class="view-btn active" data-view="coverage">Total Score</button>
+      <button class="view-btn" data-view="elementary">Elementary</button>
+      <button class="view-btn" data-view="middle">Middle School</button>
+      <button class="view-btn" data-view="high">High School</button>
+      <button class="view-btn" data-view="affordability">Affordability</button>
+      <button class="view-btn" data-view="headroom">Underserved Youth</button>
+    </div>
+    <div id="map">
+      <div style="text-align:center;padding:4rem 2rem;color:var(--text-muted)">Loading data from Google Sheets...</div>
+    </div>
+    <div class="map-footer">
+      <div class="legend" id="mapLegend"></div>
+      <a href="#methodology" class="methodology-link">📄 Methodology</a>
+    </div>
+  </div>
+</div>
+
+<!-- SCATTER PLOT -->
+<!-- SCATTER PLOT 1: Coverage vs Affordability -->
+<div class="scatter-section" id="scatterSection">
+  <div class="scatter-panel">
+    <h2>Coverage vs Affordability by Zip Code</h2>
+    <div class="panel-sub">Each dot is a zip code. Dot size represents the number of underserved youth. Hover over any dot for details.</div>
+    <div class="scatter-container" id="scatterContainer"></div>
+    <div class="scatter-blurb">
+      <strong>How to read this chart:</strong> The red shaded area (top-left) highlights priority zip codes that have both low coverage AND high poverty rates — these areas need new programs AND scholarship support. Orange dots are below the 70 target but in lower-poverty areas — they need programs but families may be able to afford them. Blue dots are meeting the coverage target. The 70-point threshold was set by PFF leadership as the minimum score for a zip code to be considered "well-served," reflecting a combination of adequate after-school, summer camp, and league play access.
+    </div>
+  </div>
+</div>
+
+<!-- SCATTER PLOT 2: Coverage vs Underserved Youth -->
+<div class="scatter-section">
+  <div class="scatter-panel">
+    <h2>Coverage vs Underserved Youth by Zip Code</h2>
+    <div class="panel-sub">Each dot is a zip code. This chart shows where the largest populations of underserved youth are concentrated. Hover over any dot for details.</div>
+    <div class="scatter-container" id="scatterContainer2"></div>
+    <div class="scatter-blurb">
+      <strong>How to read this chart:</strong> Zip codes in the top-left have both low coverage scores AND large numbers of underserved youth — these represent the biggest opportunities for impact. A single new program in these areas would reach the most kids. Red dots are the highest priority (below 70 coverage score AND 1,000+ underserved youth).
+    </div>
+  </div>
+</div>
+
+<!-- SCATTER PLOT 3: Underserved Youth vs Affordability -->
+<div class="scatter-section">
+  <div class="scatter-panel">
+    <h2>Underserved Youth vs Affordability by Zip Code</h2>
+    <div class="panel-sub">This chart shows where the most underserved youth live AND whether those areas have high poverty rates. Hover over any dot for details.</div>
+    <div class="scatter-container" id="scatterContainer3"></div>
+    <div class="scatter-blurb">
+      <strong>How to read this chart:</strong> Zip codes in the top-right are the highest priority — they have both large numbers of underserved youth AND high poverty rates, meaning new programs in these areas would need scholarship support. Red dots have 1,000+ underserved youth and 40%+ low-income households. Orange dots have high underserved numbers but lower poverty. Blue dots have smaller gaps.
+    </div>
+  </div>
+</div>
+
+<!-- METHODOLOGY -->
+<div class="scatter-section" id="methodology">
+  <div class="scatter-panel">
+    <h2>Methodology</h2>
+    <div class="panel-sub">How the coverage scores are calculated</div>
+    <div style="font-size:.78rem;line-height:1.7;color:var(--text)">
+      <p><strong>Total Coverage Score</strong> is a population-weighted average of Elementary, Middle School, and High School scores. Each age group's score is weighted by how many kids are in that group.</p>
+      <p style="margin-top:.5rem"><strong>Each age group score</strong> combines three program types: After-School (30% weight), Summer Camp (20% weight), and League Play (50% weight).</p>
+      <p style="margin-top:.5rem"><strong>After-School scores</strong> are enrollment-based — the percentage of students attending a school with a pickleball program, adjusted for months of operation.</p>
+      <p style="margin-top:.5rem"><strong>Summer Camp and League Play scores</strong> are proximity-based — how close the nearest program is by drive time. Programs within 20 minutes score 100, 20-30 min scores 75, 30-40 min scores 50, over 40 min scores 0.</p>
+      <p style="margin-top:.5rem"><strong>Headroom</strong> estimates the number of underserved youth by age group, calculated as (100 - coverage score) × population for each age tier.</p>
+      <p style="margin-top:.5rem"><strong>Data sources:</strong> US Census ACS (youth population, income), Seattle Public Schools P223 (school enrollment), HUD FY2024 (income categories), Google Maps (drive times).</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Pickleball Equity Project — Pickleball Forward Foundation &copy; 2026 | Data: ACS Census, SPS P223, HUD AMI | Analysis by Sagar Mittal
+</div>
+
+<script>
+/* CONFIG */
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTw1QbkQmEZ4dcG1qmKYASxSW6SPL3WXyhlIc26qU9NaQXxpHxdYu1W0xQBj248-g/pub?gid=902651100&single=true&output=csv';
+const PROGRAMS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZ7nXEUTnZ4pIBKSkrwOmDDJ1n5BQdvskQ5CKemxDuonzGQGeiwbDQ9l-d73Dzfg/pub?gid=1491717735&single=true&output=csv';
+const GEOJSON_URL = 'https://raw.githubusercontent.com/seattleio/seattle-boundaries-data/refs/heads/master/data/zip-codes.geojson';
+
+const ZIP_CENTERS = {
+  "98001":{lat:47.3043,lng:-122.2127},"98040":{lat:47.5707,lng:-122.2290},
+  "98101":{lat:47.6114,lng:-122.3371},"98102":{lat:47.6317,lng:-122.3218},
+  "98103":{lat:47.6712,lng:-122.3435},"98104":{lat:47.6023,lng:-122.3308},
+  "98105":{lat:47.6631,lng:-122.2898},"98106":{lat:47.5398,lng:-122.3575},
+  "98107":{lat:47.6700,lng:-122.3832},"98108":{lat:47.5415,lng:-122.3130},
+  "98109":{lat:47.6389,lng:-122.3498},"98112":{lat:47.6297,lng:-122.2970},
+  "98115":{lat:47.6850,lng:-122.2875},"98116":{lat:47.5722,lng:-122.3897},
+  "98117":{lat:47.6876,lng:-122.3756},"98118":{lat:47.5410,lng:-122.2735},
+  "98119":{lat:47.6490,lng:-122.3700},"98121":{lat:47.6157,lng:-122.3440},
+  "98122":{lat:47.6119,lng:-122.3049},"98125":{lat:47.7131,lng:-122.3100},
+  "98126":{lat:47.5444,lng:-122.3703},"98133":{lat:47.7394,lng:-122.3445},
+  "98136":{lat:47.5360,lng:-122.3920},"98144":{lat:47.5892,lng:-122.3010},
+  "98146":{lat:47.4997,lng:-122.3568},"98168":{lat:47.4780,lng:-122.2970},
+  "98177":{lat:47.7560,lng:-122.3640},"98178":{lat:47.4930,lng:-122.2420},
+  "98188":{lat:47.4460,lng:-122.2730},"98199":{lat:47.6540,lng:-122.3980},
+  "98516":{lat:47.0417,lng:-122.7953}
+};
+
+let map, zipData=[], programData=[], geoJsonData=null;
+let zipPolygons=[], programMarkers=[], zipLabels=[];
+let currentView='coverage';
+
+/* COLORS */
+function coverageColor(s) {
+  if (s>=80) return '#2ecc71'; if (s>=60) return '#82e0aa';
+  if (s>=40) return '#f9e79f'; if (s>=20) return '#f5b041'; return '#e74c3c';
+}
+function affordabilityColor(p) {
+  if (p>=55) return '#e74c3c'; if (p>=45) return '#f5b041';
+  if (p>=35) return '#f9e79f'; return '#2ecc71';
+}
+function headroomColor(h) {
+  if (h>=3000) return '#e74c3c'; if (h>=2000) return '#f5b041';
+  if (h>=1000) return '#f9e79f'; return '#82e0aa';
+}
+function providerColor(name, type) {
+  const n=(name||'').toLowerCase(), t=(type||'').toLowerCase();
+  if (n.includes('skyhawk')) return '#ef5350';
+  if (n.includes('westside')) return '#f0c040';
+  if (n.includes('youth pickleball')||n.includes('ypi')) return '#ff9800';
+  if (t.includes('summer')) return '#42a5f5';
+  return '#3ecf8e';
+}
+
+/* LOAD DATA */
+function loadAllData() {
+  let loaded=0;
+  const checkDone=()=>{if(++loaded===3) initEverything();};
+
+  Papa.parse(SHEET_URL, {
+    download:true, header:true, skipEmptyLines:true,
+    complete:function(r) {
+      zipData = r.data.map(row=>({
+        zip:String(row['Zip_Code']||'').trim(),
+        name:String(row['Neighbourhood(s)']||'').trim(),
+        region:String(row['Region']||'').trim(),
+        elemPop:parseFloat(row['Elementary_Pop(5-11)'])||0,
+        midPop:parseFloat(row['MiddleSchool _Pop(12-14)'])||0,
+        highPop:parseFloat(row['HighSchool_Pop(15-17)'])||0,
+        youthPop:parseFloat(row['Youth_Pop(5-17)'])||0,
+        totalPop:parseFloat(row['Total_Pop(0-17)'])||0,
+        lowIncome:parseFloat(row['%_Low_Income(Below_$100K)'])||0,
+        medianIncome:parseFloat(row['Median_HH_Income'])||0,
+        hudCategory:String(row['HUD_Income_Category']||'').trim(),
+        programs:parseFloat(row['Total_Youth_PB_Programs'])||0,
+        providers:String(row['Providers']||'').trim(),
+        elemEnrollment:parseFloat(row['Total_Elementary_Enrollment(K-5)'])||0,
+        elemCoverage:parseFloat(row['Elementary_Coverage%'])||0,
+        monthsCoverage:parseFloat(row['Months_of_Coverage(Out of 12)'])||0,
+        coverageScore:parseFloat(row['Total_Coverage_Score(AS+SC+LP)'])||0,
+        headroom:parseFloat(row['Unserved_Youth_Headroom'])||0,
+        nearestSummerCamp:String(row['Nearest_Summer_Camp']||'').trim(),
+        summerCampDrive:parseFloat(row['Nearest_Summer_Camp_Drive_Time(min)'])||0,
+        elemAfterSchool:parseFloat(row['Elementary_AfterSchool_Score'])||0,
+        midAfterSchool:parseFloat(row['Middle_AfterSchool_Score'])||0,
+        highAfterSchool:parseFloat(row['High_AfterSchool_Score'])||0,
+        elemSummerCamp:parseFloat(row['Elementary_SummerCamp_Score'])||0,
+        midSummerCamp:parseFloat(row['Middle_SummerCamp_Score'])||0,
+        highSummerCamp:parseFloat(row['High_SummerCamp_Score'])||0,
+        elemLeague:parseFloat(row['Elementary_LeaguePlay_Score'])||0,
+        midLeague:parseFloat(row['Middle_LeaguePlay_Score'])||0,
+        highLeague:parseFloat(row['High_LeaguePlay_Score'])||0,
+        elemTotal:parseFloat(row['Elementary_Total_Score'])||0,
+        midTotal:parseFloat(row['Middle_Total_Score'])||0,
+        highTotal:parseFloat(row['High_Total_Score'])||0,
+        elemHeadroom:parseFloat(row['Elementary_Headroom'])||0,
+        midHeadroom:parseFloat(row['Middle_Headroom'])||0,
+        highHeadroom:parseFloat(row['High_Headroom'])||0,
+        totalHeadroom:parseFloat(row['Total_Headroom'])||0,
+        nearestElemLeague:String(row['Nearest_Elementary_League_Location']||'').trim(),
+        nearestMidLeague:String(row['Nearest_Middle_League_Location']||'').trim(),
+        nearestHighLeague:String(row['Nearest_High_League_Location']||'').trim(),
+      })).filter(d=>d.zip&&d.zip.length===5);
+      console.log('Loaded',zipData.length,'zip codes');
+      checkDone();
+    },
+    error:()=>{console.error('Error loading zip data');checkDone();}
+  });
+
+  Papa.parse(PROGRAMS_URL, {
+    download:true, header:true, skipEmptyLines:true,
+    complete:function(r) {
+      programData = r.data.map(row=>({
+        name:String(row['Program_Name']||'').trim(),
+        location:String(row['Location']||'').trim(),
+        address:String(row['Address']||'').trim(),
+        zip:String(row['Zip_Code']||'').trim(),
+        type:String(row['Type_of_Program']||'').trim(),
+        ages:String(row['Ages_Served']||'').trim(),
+        servesElem:String(row['Serves_Elementary']||'').trim(),
+        servesMid:String(row['Serves_Middle']||'').trim(),
+        servesHigh:String(row['Serves_High']||'').trim(),
+      })).filter(d=>d.zip&&d.address);
+      console.log('Loaded',programData.length,'programs');
+      checkDone();
+    },
+    error:()=>{console.error('Error loading programs');checkDone();}
+  });
+
+  fetch(GEOJSON_URL)
+    .then(res=>res.json())
+    .then(data=>{geoJsonData=data;console.log('Loaded GeoJSON');checkDone();})
+    .catch(()=>{console.warn('GeoJSON failed');geoJsonData=null;checkDone();});
+}
+
+function initEverything() { buildMetrics(); initMap(); setupViewToggle(); buildScatter(); }
+
+/* METRICS */
+function buildMetrics() {
+  const noAS=zipData.filter(z=>z.elemAfterSchool===0&&z.elemEnrollment>0).length;
+  const totalHR=Math.round(zipData.reduce((s,z)=>s+z.totalHeadroom,0));
+  const avgElem=(zipData.reduce((s,z)=>s+z.elemTotal,0)/zipData.length).toFixed(1);
+  const avgMid=(zipData.reduce((s,z)=>s+z.midTotal,0)/zipData.length).toFixed(1);
+  const avgHigh=(zipData.reduce((s,z)=>s+z.highTotal,0)/zipData.length).toFixed(1);
+  const c=document.getElementById('metricsRow');
+  c.innerHTML=`
+    <div class="metric-card mc-blue">
+      <div class="label">Zip Codes Analyzed</div>
+      <div class="value">${zipData.length}</div>
+      <div class="detail">Seattle metro area</div>
+    </div>
+    <div class="metric-card mc-yellow">
+      <div class="label">Underserved Youth</div>
+      <div class="value">${totalHR.toLocaleString()}</div>
+      <div class="detail">ages 5-17 estimated gap</div>
+    </div>
+    <div class="metric-card mc-green">
+      <div class="label">Avg Elementary Score
+        <span class="tooltip-trigger">?<span class="tooltip-text">Average coverage score for elementary-age students (K-5) across all zip codes. Combines after-school (30%), summer camp (20%), and league play (50%) access.</span></span>
+      </div>
+      <div class="value">${avgElem}</div>
+      <div class="detail">out of 100 across all zip codes</div>
+    </div>
+    <div class="metric-card mc-orange">
+      <div class="label">Avg Middle Score
+        <span class="tooltip-trigger">?<span class="tooltip-text">Average coverage score for middle school students (6-8). Lower than elementary because no after-school programs exist at middle schools.</span></span>
+      </div>
+      <div class="value">${avgMid}</div>
+      <div class="detail">out of 100 — no after-school programs</div>
+    </div>
+    <div class="metric-card mc-red">
+      <div class="label">Avg High School Score
+        <span class="tooltip-trigger">?<span class="tooltip-text">Average coverage score for high school students (9-12). Lowest score because only league play serves this age group — no after-school or summer camp options.</span></span>
+      </div>
+      <div class="value">${avgHigh}</div>
+      <div class="detail">out of 100 — league play only</div>
+    </div>`;
+}
+
+/* MAP */
+function initMap() {
+  map=new google.maps.Map(document.getElementById('map'),{
+    center:{lat:47.62,lng:-122.33}, zoom:11,
+    mapTypeControl:false, streetViewControl:false, fullscreenControl:true, gestureHandling:'greedy',
+    styles:[
+      {featureType:"road",elementType:"labels",stylers:[{visibility:"off"}]},
+      {featureType:"poi",stylers:[{visibility:"off"}]},
+      {featureType:"transit",stylers:[{visibility:"off"}]}
+    ]
+  });
+  drawZipBoundaries('coverage');
+  addProgramMarkers();
+}
+
+function getColorForView(zd,view) {
+  if (view==='affordability') return affordabilityColor(zd.lowIncome);
+  if (view==='headroom') return headroomColor(zd.totalHeadroom);
+  if (view==='elementary') return coverageColor(zd.elemTotal);
+  if (view==='middle') return coverageColor(zd.midTotal);
+  if (view==='high') return coverageColor(zd.highTotal);
+  return coverageColor(zd.coverageScore);
+}
+
+function drawZipBoundaries(view) {
+  zipPolygons.forEach(p=>p.setMap(null));
+  zipLabels.forEach(l=>l.setMap(null));
+  zipPolygons=[]; zipLabels=[];
+  const ourZips=new Set(zipData.map(z=>z.zip));
+  const drawnZips=new Set();
+
+  if (geoJsonData) {
+    geoJsonData.features.forEach(feature=>{
+      const fZip=feature.properties.ZCTA5CE10||feature.properties.GEOID10||'';
+      if (!ourZips.has(fZip)) return;
+      const zd=zipData.find(z=>z.zip===fZip);
+      if (!zd) return;
+      drawnZips.add(fZip);
+
+      const color=getColorForView(zd,view);
+      const coords=feature.geometry.coordinates;
+      const paths=[];
+      if (feature.geometry.type==='Polygon') {
+        coords.forEach(ring=>{paths.push(ring.map(c=>({lat:c[1],lng:c[0]})));});
+      } else if (feature.geometry.type==='MultiPolygon') {
+        coords.forEach(poly=>{poly.forEach(ring=>{paths.push(ring.map(c=>({lat:c[1],lng:c[0]})));});});
+      }
+
+      const polygon=new google.maps.Polygon({
+        paths, strokeColor:'rgba(0,0,0,0.3)', strokeWeight:1.5,
+        fillColor:color, fillOpacity:.55, map, zIndex:1
+      });
+      google.maps.event.addListener(polygon,'click',()=>showInfoPanel(zd));
+      google.maps.event.addListener(polygon,'mouseover',()=>{polygon.setOptions({fillOpacity:.8,strokeWeight:2.5});});
+      google.maps.event.addListener(polygon,'mouseout',()=>{polygon.setOptions({fillOpacity:.55,strokeWeight:1.5});});
+      zipPolygons.push(polygon);
+
+      const center=ZIP_CENTERS[fZip];
+      if (center) {
+        const label=new google.maps.Marker({
+          position:center, map,
+          icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},
+          label:{text:fZip,color:'#2d3748',fontSize:'10px',fontWeight:'700'},
+          zIndex:5, clickable:false
+        });
+        zipLabels.push(label);
+      }
+    });
+    /* Gray out zip codes in GeoJSON that are NOT in our analysis */
+  if (geoJsonData) {
+    geoJsonData.features.forEach(feature => {
+      const fZip = feature.properties.ZCTA5CE10 || feature.properties.GEOID10 || '';
+      if (drawnZips.has(fZip)) return; // Skip zip codes we already drew
+      
+      const coords = feature.geometry.coordinates;
+      const paths = [];
+      if (feature.geometry.type === 'Polygon') {
+        coords.forEach(ring => { paths.push(ring.map(c => ({lat:c[1],lng:c[0]}))); });
+      } else if (feature.geometry.type === 'MultiPolygon') {
+        coords.forEach(poly => { poly.forEach(ring => { paths.push(ring.map(c => ({lat:c[1],lng:c[0]}))); }); });
+      }
+
+      const polygon = new google.maps.Polygon({
+        paths, strokeColor:'rgba(0,0,0,0.15)', strokeWeight:1,
+        fillColor:'#cccccc', fillOpacity:0.6, map, zIndex:0
+      });
+
+      google.maps.event.addListener(polygon, 'click', () => {
+        const title = document.getElementById('infoTitle');
+        const grid = document.getElementById('infoGrid');
+        const placeholder = document.getElementById('infoPlaceholder');
+        const blurbDiv = document.getElementById('zipBlurb');
+        title.textContent = fZip + ' — Not Included';
+        placeholder.style.display = 'none';
+        grid.style.display = 'flex';
+        blurbDiv.style.display = 'block';
+        if (fZip === '98155') {
+          blurbDiv.innerHTML = '<div class="zip-blurb">This zip code was not included in the current analysis scope. Future updates may expand coverage.</div>';
+        } else {
+          blurbDiv.innerHTML = '<div class="zip-blurb">This zip code is not included in the analysis. It is primarily a commercial, industrial, or very low-population area with minimal youth residents.</div>';
+        }
+        grid.innerHTML = '';
+      });
+
+      zipPolygons.push(polygon);
+    });
+  }
+  }
+
+  /* Gray circles for zip codes not in GeoJSON */
+  zipData.forEach(zd=>{
+    if (drawnZips.has(zd.zip)) return;
+    if (!ZIP_CENTERS[zd.zip]) return;
+    if (zd.zip==='98516') return;
+
+    const color=getColorForView(zd,view);
+    const circle=new google.maps.Circle({
+      strokeColor:'rgba(0,0,0,0.3)', strokeWeight:1.5,
+      fillColor:color, fillOpacity:.5,
+      map, center:ZIP_CENTERS[zd.zip], radius:800, zIndex:1
+    });
+    google.maps.event.addListener(circle,'click',()=>showInfoPanel(zd));
+    zipPolygons.push(circle);
+
+    const label=new google.maps.Marker({
+      position:ZIP_CENTERS[zd.zip], map,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},
+      label:{text:zd.zip,color:'#2d3748',fontSize:'9px',fontWeight:'700'},
+      zIndex:5, clickable:false
+    });
+    zipLabels.push(label);
+  });
+
+  updateLegend(view);
+}
+
+function addProgramMarkers() {
+  programMarkers.forEach(m=>m.setMap(null));
+  programMarkers=[];
+  programData.forEach(prog=>{
+    const center=ZIP_CENTERS[prog.zip];
+    if (!center) return;
+    const offset=(Math.random()-0.5)*0.008;
+    const position={lat:center.lat+offset,lng:center.lng+offset};
+    const color=providerColor(prog.name,prog.type);
+    const marker=new google.maps.Marker({
+      position, map,
+      title:`${prog.location} (${prog.name})`,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:color,fillOpacity:.9,strokeColor:'rgba(0,0,0,0.3)',strokeWeight:2},
+      zIndex:10
+    });
+    const iw=new google.maps.InfoWindow({
+      content:`<div style="color:#333;font-size:13px;max-width:220px;line-height:1.4">
+        <strong>${prog.location}</strong><br>
+        <span style="color:#666">${prog.name}</span><br>
+        <span style="color:#666">Type: ${prog.type}</span><br>
+        <span style="color:#666">Ages: ${prog.ages}</span><br>
+        <span style="color:#666">Serves: ${[prog.servesElem==='Yes'?'Elem':'',prog.servesMid==='Yes'?'Middle':'',prog.servesHigh==='Yes'?'High':''].filter(Boolean).join(', ')||'N/A'}</span><br>
+        <span style="color:#888;font-size:11px">${prog.address}</span></div>`
+    });
+    marker.addListener('click',()=>{iw.open(map,marker);});
+    programMarkers.push(marker);
+  });
+}
+
+function updateLegend(view) {
+  const l=document.getElementById('mapLegend');
+  if (view==='affordability') {
+    l.innerHTML=`
+      <div class="legend-item"><div class="legend-swatch" style="background:#2ecc71"></div>&lt;35% — Lower poverty</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f9e79f"></div>35-45% — Moderate</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f5b041"></div>45-55% — Higher poverty</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>55%+ — Highest poverty</div>`;
+  } else if (view==='headroom') {
+    l.innerHTML=`
+      <div class="legend-item"><div class="legend-swatch" style="background:#82e0aa"></div>&lt;1K — Smaller gap</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f9e79f"></div>1-2K — Moderate gap</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f5b041"></div>2-3K — Large gap</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>3K+ — Critical gap</div>`;
+  } else {
+    const vl=view==='coverage'?'Total':view==='elementary'?'Elementary':view==='middle'?'Middle School':'High School';
+    l.innerHTML=`
+      <div class="legend-item"><div class="legend-swatch" style="background:#2ecc71"></div>80+ — Well served</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#82e0aa"></div>60-80 — Good access</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f9e79f"></div>40-60 — Moderate access</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#f5b041"></div>20-40 — Limited access</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div>&lt;20 — Critical gap</div>
+      <div class="legend-desc">${vl} Coverage Score</div>`;
+  }
+}
+
+/* AUTO-GENERATED BLURB */
+function generateBlurb(z) {
+  let parts=[];
+
+  // After-school status
+  if (z.elemAfterSchool > 0) {
+    parts.push(`has after-school pickleball covering ${z.elemCoverage.toFixed(0)}% of elementary students`);
+  } else {
+    parts.push(`does not have any after-school pickleball programs`);
+  }
+
+  // Summer camp access
+  if (z.summerCampDrive === 0) {
+    parts.push(`has summer camp options in the zip code (${z.nearestSummerCamp})`);
+  } else if (z.summerCampDrive <= 20) {
+    parts.push(`is within ${z.summerCampDrive} minutes of summer camp at ${z.nearestSummerCamp}`);
+  } else if (z.summerCampDrive <= 40) {
+    parts.push(`has moderate access to summer camp at ${z.nearestSummerCamp} (${z.summerCampDrive} min drive)`);
+  } else {
+    parts.push(`has limited summer camp access (nearest is ${z.summerCampDrive} min away)`);
+  }
+
+  // League play access
+  if (z.elemLeague >= 100) {
+    parts.push(`has league play access nearby at ${z.nearestElemLeague}`);
+  } else if (z.elemLeague >= 75) {
+    parts.push(`has moderate league play access at ${z.nearestElemLeague}`);
+  } else if (z.elemLeague > 0) {
+    parts.push(`has limited league play access`);
+  } else {
+    parts.push(`has no nearby league play options`);
+  }
+
+  // Affordability note
+  if (z.lowIncome >= 50) {
+    parts.push(`${z.lowIncome.toFixed(0)}% of households are low-income, suggesting strong need for scholarship support`);
+  } else if (z.lowIncome >= 40) {
+    parts.push(`${z.lowIncome.toFixed(0)}% of households are low-income`);
+  }
+
+  return `<strong>${z.zip} ${z.name}</strong> ${parts.join('; ')}.`;
+}
+
+/* INFO PANEL */
+function showInfoPanel(z) {
+  const title=document.getElementById('infoTitle');
+  const grid=document.getElementById('infoGrid');
+  const placeholder=document.getElementById('infoPlaceholder');
+  const blurbDiv=document.getElementById('zipBlurb');
+
+  title.textContent=`${z.zip} — ${z.name}`;
+  placeholder.style.display='none';
+  grid.style.display='flex';
+  blurbDiv.style.display='block';
+
+  // Auto-generated blurb
+  blurbDiv.innerHTML=`<div class="zip-blurb">${generateBlurb(z)}</div>`;
+
+  const sc=(val,max)=>{
+    if(max&&val>=max*0.7) return 'color:#2ecc71';
+    if(val<=0) return 'color:#e53e3e';
+    return 'color:#dd6b20';
+  };
+
+  grid.innerHTML=`
+    <div class="info-section-header">Overview</div>
+    <div class="info-item"><div class="info-label">Total Coverage Score</div><div class="info-value" style="${sc(z.coverageScore,100)}">${z.coverageScore.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">% Low Income</div><div class="info-value">${z.lowIncome.toFixed(1)}%</div></div>
+    <div class="info-item"><div class="info-label">Total Underserved Youth</div><div class="info-value">${Math.round(z.totalHeadroom).toLocaleString()}</div></div>
+    <div class="info-item"><div class="info-label">Youth Pop (5-17)</div><div class="info-value">${Math.round(z.youthPop).toLocaleString()}</div></div>
+    <div class="info-item"><div class="info-label">Months of Coverage</div><div class="info-value">${z.monthsCoverage} / 12</div></div>
+    <div class="info-item"><div class="info-label">Programs</div><div class="info-value">${z.programs} ${z.providers?'('+z.providers+')':''}</div></div>
+    <div class="info-item"><div class="info-label">HUD Category</div><div class="info-value">${z.hudCategory||'N/A'}</div></div>
+
+    <div class="info-section-header">Elementary (K-5) — Headroom: ${Math.round(z.elemHeadroom).toLocaleString()}</div>
+    <div class="info-item"><div class="info-label">Total Score</div><div class="info-value" style="${sc(z.elemTotal,100)}">${z.elemTotal.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">After-School</div><div class="info-value">${z.elemAfterSchool.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">Summer Camp</div><div class="info-value">${z.elemSummerCamp.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">League Play</div><div class="info-value">${z.elemLeague.toFixed(1)}</div></div>
+
+    <div class="info-section-header">Middle School (6-8) — Headroom: ${Math.round(z.midHeadroom).toLocaleString()}</div>
+    <div class="info-item"><div class="info-label">Total Score</div><div class="info-value" style="${sc(z.midTotal,70)}">${z.midTotal.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">After-School</div><div class="info-value">${z.midAfterSchool.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">Summer Camp</div><div class="info-value">${z.midSummerCamp.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">League Play</div><div class="info-value">${z.midLeague.toFixed(1)}</div></div>
+
+    <div class="info-section-header">High School (9-12) — Headroom: ${Math.round(z.highHeadroom).toLocaleString()}</div>
+    <div class="info-item"><div class="info-label">Total Score</div><div class="info-value" style="${sc(z.highTotal,50)}">${z.highTotal.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">After-School</div><div class="info-value">${z.highAfterSchool.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">Summer Camp</div><div class="info-value">${z.highSummerCamp.toFixed(1)}</div></div>
+    <div class="info-item"><div class="info-label">League Play</div><div class="info-value">${z.highLeague.toFixed(1)}</div></div>
+  `;
+
+  if (window.innerWidth<=900) {
+    document.getElementById('infoCol').scrollIntoView({behavior:'smooth'});
+  }
+}
+
+/* SCATTER PLOT */
+function buildScatter() {
+  buildScatter1();
+  buildScatter2();
+  buildScatter3();
+}
+
+/* SCATTER PLOT 1: Coverage vs Affordability */
+function buildScatter1() {
+  const container = document.getElementById('scatterContainer');
+  const w = container.clientWidth || 800;
+  const h = 480;
+  const pad = {top:30, right:30, bottom:55, left:60};
+  const pw = w - pad.left - pad.right;
+  const ph = h - pad.top - pad.bottom;
+  const maxX = 100, maxY = 80;
+  const sx = v => pad.left + (v/maxX) * pw;
+  const sy = v => pad.top + ph - (v/maxY) * ph;
+
+  const seattleZips = zipData.filter(z => z.zip !== '98516');
+  const maxHR = Math.max(...seattleZips.map(z => z.totalHeadroom));
+  
+  // Identify priority zip codes (below 70 AND above 40% low income)
+  const priorityZips = seattleZips.filter(z => z.coverageScore < 70 && z.lowIncome >= 40);
+
+  let svg = `<svg class="scatter-svg" viewBox="0 0 ${w} ${h}">`;
+
+  // Grid
+  for(let i=0;i<=100;i+=20) svg += `<line x1="${sx(i)}" y1="${pad.top}" x2="${sx(i)}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`;
+  for(let i=0;i<=80;i+=20) svg += `<line x1="${pad.left}" y1="${sy(i)}" x2="${w-pad.right}" y2="${sy(i)}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`;
+
+  // Axes
+  svg += `<line x1="${pad.left}" y1="${h-pad.bottom}" x2="${w-pad.right}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.15)" stroke-width="1"/>`;
+  svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.15)" stroke-width="1"/>`;
+
+  // Axis labels
+  for(let i=0;i<=100;i+=20) svg += `<text x="${sx(i)}" y="${h-pad.bottom+18}" class="axis-label" text-anchor="middle">${i}</text>`;
+  for(let i=0;i<=80;i+=20) svg += `<text x="${pad.left-10}" y="${sy(i)+4}" class="axis-label" text-anchor="end">${i}%</text>`;
+  svg += `<text x="${w/2}" y="${h-8}" class="axis-label" text-anchor="middle" font-weight="600">Total Coverage Score (%)</text>`;
+  svg += `<text x="16" y="${h/2}" class="axis-label" text-anchor="middle" transform="rotate(-90,16,${h/2})" font-weight="600">% Low Income Households (Below $100K)</text>`;
+
+  // Quadrant shading — top-left is priority area
+  svg += `<rect x="${pad.left}" y="${pad.top}" width="${sx(70)-pad.left}" height="${sy(40)-pad.top}" fill="#fee2e2" opacity=".3"/>`;
+  svg += `<text x="${sx(35)}" y="${pad.top+16}" fill="#e53e3e" font-size="9" text-anchor="middle" opacity=".6">Priority: Low Coverage + High Poverty</text>`;
+
+  // Threshold line at 70
+  svg += `<line x1="${sx(70)}" y1="${pad.top}" x2="${sx(70)}" y2="${h-pad.bottom}" class="threshold-line"/>`;
+  svg += `<text x="${sx(70)+4}" y="${h-pad.bottom-8}" fill="#e53e3e" font-size="9" opacity=".8">Well-Served Threshold: 70</text>`;
+
+  // Dots
+  seattleZips.forEach(z => {
+    const cx = sx(z.coverageScore);
+    const cy = sy(z.lowIncome);
+    const r = Math.max(4, Math.min(14, (z.totalHeadroom/maxHR) * 14));
+    const isPriority = z.coverageScore < 70 && z.lowIncome >= 40;
+    const color = isPriority ? '#e53e3e' : z.coverageScore >= 70 ? '#4ABBE0' : '#dd6b20';
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" class="scatter-dot" opacity=".7" stroke="#fff" stroke-width="1.5" data-zip="${z.zip}"
+      onmouseover="showScatterTip(evt,'${z.zip}','${z.name.replace(/'/g,"\\'")}',${z.coverageScore.toFixed(1)},${z.lowIncome.toFixed(1)},${Math.round(z.totalHeadroom)})"
+      onmouseout="hideScatterTip()"
+      />`;
+    svg += `<text x="${cx+r+3}" y="${cy+3}" class="scatter-label">${z.zip}</text>`;
+  });
+
+  svg += `</svg>`;
+  svg += `<div id="scatterTip" style="display:none;position:absolute;background:#2d3748;color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;pointer-events:none;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:250px"></div>`;
+  container.innerHTML = svg;
+}
+
+function showScatterTip(evt, zip, name, score, income, headroom) {
+  const tip = document.getElementById('scatterTip');
+  tip.style.display = 'block';
+  const isPriority = score < 70 && income >= 40;
+  tip.innerHTML = `<strong>${zip} — ${name}</strong><br>Coverage Score: ${score}<br>Low Income: ${income}%<br>Underserved Youth: ${headroom.toLocaleString()}${isPriority ? '<br><span style="color:#fca5a5">⚠ Priority Zip Code</span>' : ''}`;
+  const container = document.getElementById('scatterContainer');
+  const rect = container.getBoundingClientRect();
+  tip.style.left = (evt.clientX - rect.left + 15) + 'px';
+  tip.style.top = (evt.clientY - rect.top - 10) + 'px';
+}
+
+function hideScatterTip() {
+  document.getElementById('scatterTip').style.display = 'none';
+}
+
+/* SCATTER PLOT 2: Coverage vs Underserved Youth */
+function buildScatter2() {
+  const container = document.getElementById('scatterContainer2');
+  if (!container) return;
+  const w = container.clientWidth || 800;
+  const h = 480;
+  const pad = {top:30, right:30, bottom:55, left:70};
+  const pw = w - pad.left - pad.right;
+  const ph = h - pad.top - pad.bottom;
+
+  const seattleZips = zipData.filter(z => z.zip !== '98516');
+  const maxX = 100;
+  const maxY = Math.ceil(Math.max(...seattleZips.map(z => z.totalHeadroom)) / 1000) * 1000;
+  const sx = v => pad.left + (v/maxX) * pw;
+  const sy = v => pad.top + ph - (v/maxY) * ph;
+
+  let svg = `<svg class="scatter-svg" viewBox="0 0 ${w} ${h}">`;
+
+  // Grid
+  for(let i=0;i<=100;i+=20) svg += `<line x1="${sx(i)}" y1="${pad.top}" x2="${sx(i)}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`;
+  for(let i=0;i<=maxY;i+=1000) svg += `<line x1="${pad.left}" y1="${sy(i)}" x2="${w-pad.right}" y2="${sy(i)}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`;
+
+  // Axes
+  svg += `<line x1="${pad.left}" y1="${h-pad.bottom}" x2="${w-pad.right}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.15)" stroke-width="1"/>`;
+  svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.15)" stroke-width="1"/>`;
+
+  // Axis labels
+  for(let i=0;i<=100;i+=20) svg += `<text x="${sx(i)}" y="${h-pad.bottom+18}" class="axis-label" text-anchor="middle">${i}</text>`;
+  for(let i=0;i<=maxY;i+=1000) svg += `<text x="${pad.left-10}" y="${sy(i)+4}" class="axis-label" text-anchor="end">${(i/1000).toFixed(0)}K</text>`;
+  svg += `<text x="${w/2}" y="${h-8}" class="axis-label" text-anchor="middle" font-weight="600">Total Coverage Score (%)</text>`;
+  svg += `<text x="18" y="${h/2}" class="axis-label" text-anchor="middle" transform="rotate(-90,18,${h/2})" font-weight="600">Underserved Youth (ages 5-17)</text>`;
+
+  // Threshold line at 70
+  svg += `<line x1="${sx(70)}" y1="${pad.top}" x2="${sx(70)}" y2="${h-pad.bottom}" class="threshold-line"/>`;
+  svg += `<text x="${sx(70)+4}" y="${h-pad.bottom-8}" fill="#e53e3e" font-size="9" opacity=".8">Well-Served Threshold: 70</text>`;
+
+  // Priority area shading — top-left
+  svg += `<rect x="${pad.left}" y="${pad.top}" width="${sx(70)-pad.left}" height="${sy(1000)-pad.top}" fill="#fee2e2" opacity=".3"/>`;
+  svg += `<text x="${sx(35)}" y="${pad.top+16}" fill="#e53e3e" font-size="9" text-anchor="middle" opacity=".6">Priority: Low Coverage + High Underserved Population</text>`;
+
+  // Dots — color by affordability
+  seattleZips.forEach(z => {
+    const cx = sx(z.coverageScore);
+    const cy = sy(z.totalHeadroom);
+    const r = 5;
+    const isPriority = z.coverageScore < 70 && z.totalHeadroom >= 1000;
+    const color = isPriority ? '#e53e3e' : z.coverageScore >= 70 ? '#4ABBE0' : '#dd6b20';
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" class="scatter-dot" opacity=".7" stroke="#fff" stroke-width="1.5"
+      onmouseover="showScatterTip2(evt,'${z.zip}','${z.name.replace(/'/g,"\\'")}',${z.coverageScore.toFixed(1)},${Math.round(z.totalHeadroom)},${z.lowIncome.toFixed(1)})"
+      onmouseout="hideScatterTip2()"
+      />`;
+    svg += `<text x="${cx+r+3}" y="${cy+3}" class="scatter-label">${z.zip}</text>`;
+  });
+
+  svg += `</svg>`;
+  svg += `<div id="scatterTip2" style="display:none;position:absolute;background:#2d3748;color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;pointer-events:none;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:250px"></div>`;
+  container.innerHTML = svg;
+}
+
+function showScatterTip2(evt, zip, name, score, headroom, income) {
+  const tip = document.getElementById('scatterTip2');
+  tip.style.display = 'block';
+  const isPriority = score < 70 && headroom >= 1000;
+  tip.innerHTML = `<strong>${zip} — ${name}</strong><br>Coverage Score: ${score}<br>Underserved Youth: ${headroom.toLocaleString()}<br>Low Income: ${income}%${isPriority ? '<br><span style="color:#fca5a5">⚠ Priority Zip Code</span>' : ''}`;
+  const container = document.getElementById('scatterContainer2');
+  const rect = container.getBoundingClientRect();
+  tip.style.left = (evt.clientX - rect.left + 15) + 'px';
+  tip.style.top = (evt.clientY - rect.top - 10) + 'px';
+}
+
+function hideScatterTip2() {
+  document.getElementById('scatterTip2').style.display = 'none';
+}
+
+/* SCATTER PLOT 3: Underserved Youth vs Affordability */
+function buildScatter3() {
+  const container = document.getElementById('scatterContainer3');
+  if (!container) return;
+  const w = container.clientWidth || 800;
+  const h = 480;
+  const pad = {top:30, right:30, bottom:55, left:60};
+  const pw = w - pad.left - pad.right;
+  const ph = h - pad.top - pad.bottom;
+
+  const seattleZips = zipData.filter(z => z.zip !== '98516');
+  const maxX = Math.ceil(Math.max(...seattleZips.map(z => z.totalHeadroom)) / 1000) * 1000;
+  const maxY = 80;
+  const sx = v => pad.left + (v/maxX) * pw;
+  const sy = v => pad.top + ph - (v/maxY) * ph;
+
+  let svg = `<svg class="scatter-svg" viewBox="0 0 ${w} ${h}">`;
+
+  // Grid
+  for(let i=0;i<=maxX;i+=1000) svg += `<line x1="${sx(i)}" y1="${pad.top}" x2="${sx(i)}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`;
+  for(let i=0;i<=80;i+=20) svg += `<line x1="${pad.left}" y1="${sy(i)}" x2="${w-pad.right}" y2="${sy(i)}" stroke="rgba(0,0,0,.06)" stroke-width="1"/>`;
+
+  // Axes
+  svg += `<line x1="${pad.left}" y1="${h-pad.bottom}" x2="${w-pad.right}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.15)" stroke-width="1"/>`;
+  svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${h-pad.bottom}" stroke="rgba(0,0,0,.15)" stroke-width="1"/>`;
+
+  // Axis labels
+  for(let i=0;i<=maxX;i+=1000) svg += `<text x="${sx(i)}" y="${h-pad.bottom+18}" class="axis-label" text-anchor="middle">${(i/1000).toFixed(0)}K</text>`;
+  for(let i=0;i<=80;i+=20) svg += `<text x="${pad.left-10}" y="${sy(i)+4}" class="axis-label" text-anchor="end">${i}%</text>`;
+  svg += `<text x="${w/2}" y="${h-8}" class="axis-label" text-anchor="middle" font-weight="600">Underserved Youth (ages 5-17)</text>`;
+  svg += `<text x="16" y="${h/2}" class="axis-label" text-anchor="middle" transform="rotate(-90,16,${h/2})" font-weight="600">% Low Income Households (Below $100K)</text>`;
+
+  // Priority area shading — top-right
+  svg += `<rect x="${sx(1000)}" y="${pad.top}" width="${w-pad.right-sx(1000)}" height="${sy(40)-pad.top}" fill="#fee2e2" opacity=".3"/>`;
+  svg += `<text x="${sx((maxX+1000)/2)}" y="${pad.top+16}" fill="#e53e3e" font-size="9" text-anchor="middle" opacity=".6">Priority: High Underserved + High Poverty</text>`;
+
+  // Dots
+  seattleZips.forEach(z => {
+    const cx = sx(z.totalHeadroom);
+    const cy = sy(z.lowIncome);
+    const r = 5;
+    const isPriority = z.totalHeadroom >= 1000 && z.lowIncome >= 40;
+    const color = isPriority ? '#e53e3e' : z.totalHeadroom >= 1000 ? '#dd6b20' : '#4ABBE0';
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" class="scatter-dot" opacity=".7" stroke="#fff" stroke-width="1.5"
+      onmouseover="showScatterTip3(evt,'${z.zip}','${z.name.replace(/'/g,"\\'")}',${Math.round(z.totalHeadroom)},${z.lowIncome.toFixed(1)},${z.coverageScore.toFixed(1)})"
+      onmouseout="hideScatterTip3()"
+      />`;
+    svg += `<text x="${cx+r+3}" y="${cy+3}" class="scatter-label">${z.zip}</text>`;
+  });
+
+  svg += `</svg>`;
+  svg += `<div id="scatterTip3" style="display:none;position:absolute;background:#2d3748;color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;pointer-events:none;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.2);max-width:250px"></div>`;
+  container.innerHTML = svg;
+}
+
+function showScatterTip3(evt, zip, name, headroom, income, score) {
+  const tip = document.getElementById('scatterTip3');
+  tip.style.display = 'block';
+  const isPriority = headroom >= 1000 && income >= 40;
+  tip.innerHTML = `<strong>${zip} — ${name}</strong><br>Underserved Youth: ${headroom.toLocaleString()}<br>Low Income: ${income}%<br>Coverage Score: ${score}${isPriority ? '<br><span style="color:#fca5a5">⚠ Priority: Needs programs + scholarships</span>' : ''}`;
+  const container = document.getElementById('scatterContainer3');
+  const rect = container.getBoundingClientRect();
+  tip.style.left = (evt.clientX - rect.left + 15) + 'px';
+  tip.style.top = (evt.clientY - rect.top - 10) + 'px';
+}
+
+function hideScatterTip3() {
+  document.getElementById('scatterTip3').style.display = 'none';
+}
+
+/* VIEW TOGGLE */
+function setupViewToggle() {
+  document.querySelectorAll('.view-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      currentView=this.getAttribute('data-view');
+      drawZipBoundaries(currentView);
+    });
+  });
+}
+
+window.addEventListener('DOMContentLoaded',loadAllData);
+window.addEventListener('resize',buildScatter);
+</script>
+</body>
+</html>
